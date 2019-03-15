@@ -85,4 +85,10 @@ extension SegmentBarVC : SegmentBarDelegate, UIScrollViewDelegate{
         // 切换
         segmentBar.setSelectIndex(index: NSInteger(index) )
     }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let value = contentV.contentOffset.x / contentV.bounds.size.width
+        segmentBar.setScrollValue(value: value)
+    }
+
 }

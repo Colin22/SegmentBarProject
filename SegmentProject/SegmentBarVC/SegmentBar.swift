@@ -146,6 +146,7 @@ class SegmentBar: UIView {
         if itemBtns.count > 0 {
             let btn = itemBtns[0]
             btnDidClick(btn: btn)
+            setScrollValue(value: 0)
         }
         
 
@@ -165,27 +166,12 @@ class SegmentBar: UIView {
             if lastBtn == btn {return}
         }
         
-        lastSelectBtn?.titleLabel?.font = config.textNormalFont
-        btn.titleLabel?.font = config.textSelectFont
-        
         // 传递事件
         self.segmentDelegate?.segmentBarDidSelect(segmentBar: self, toIndex: btn.tag, fromIndex: lastSelectBtn?.tag ?? 0)
         
-        // 更改选中样式
-        btn.isSelected = true
-        lastSelectBtn?.isSelected = false
+        // 更改选中样式--放在scrollView的滚动代理方法中做了
+        // 为了临界值及时处理
         lastSelectBtn = btn
-        
-        // 底部line位置
-        UIView.animate(withDuration: 0.1) {
-            if self.config.isItemEqualWidth {
-                self.bottomLine.bounds.size.width = (btn.titleLabel?.text ?? "").widthWithCurrentFont(btn.titleLabel?.font ?? UIFont())
-                
-            }else{
-                self.bottomLine.bounds.size.width = btn.bounds.width
-            }
-            self.bottomLine.center = CGPoint(x: btn.center.x, y: self.bottomLine.center.y)
-        }
         
         // 判断临界值
         if btn.frame.origin.x < itemsContentV.contentOffset.x {
@@ -204,6 +190,45 @@ class SegmentBar: UIView {
         
         let btn = itemBtns[index]
         btnDidClick(btn: btn)
+        
+    }
+    
+    
+    
+    // 滚动的时候根据临界值及时更新按钮和下划线位置长度
+    func setScrollValue(value : CGFloat) {
+        if value < 0 || Int(value + 1) >= itemBtns.count { return }
+        
+        let leftIndex = Int(value)
+        let ratio = value - CGFloat(leftIndex)
+        
+        let leftBtn = itemBtns[leftIndex]
+        let rightBtn = itemBtns[leftIndex + 1]
+        
+        // 处理下划线的位置与长度
+        var width = leftBtn.bounds.width + (rightBtn.bounds.width - leftBtn.bounds.width) * ratio
+        if self.config.isItemEqualWidth {
+            let leftLableWidth = (leftBtn.titleLabel?.text ?? "").widthWithCurrentFont(leftBtn.titleLabel?.font ?? UIFont())
+            let rightLableWidth = (rightBtn.titleLabel?.text ?? "").widthWithCurrentFont(rightBtn.titleLabel?.font ?? UIFont())
+            width = leftLableWidth + (rightLableWidth - leftLableWidth) * ratio
+        }
+        self.bottomLine.bounds.size.width = width
+        let centerX = leftBtn.center.x + (rightBtn.center.x - leftBtn.center.x) * ratio
+        self.bottomLine.center = CGPoint(x: centerX, y: self.bottomLine.center.y)
+
+        // 处理两个按钮的临界选中状态
+        if ratio > 0.5 {
+            leftBtn.titleLabel?.font = config.textNormalFont
+            rightBtn.titleLabel?.font = config.textSelectFont
+            leftBtn.isSelected = false
+            rightBtn.isSelected = true
+        }else{
+            leftBtn.titleLabel?.font = config.textSelectFont
+            rightBtn.titleLabel?.font = config.textNormalFont
+            leftBtn.isSelected = true
+            rightBtn.isSelected = false
+            
+        }
         
     }
     
